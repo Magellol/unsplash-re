@@ -10,6 +10,8 @@
   "author": "Thomas Lefebvre <thmslbvr@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "bs-platform": "^8.2.0"
+    "bs-node-fetch": "^0.3.0",
+    "bs-platform": "^8.2.0",
+    "node-fetch": "^2.6.0"
   }
 }
