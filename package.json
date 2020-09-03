@@ -1,0 +1,15 @@
+{
+  "name": "unsplash-re",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "bsb -make-world",
+    "clean": "bsb -clean-world",
+    "start": "bsb -make-world -w"
+  },
+  "keywords": [],
+  "author": "Thomas Lefebvre <thmslbvr@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "bs-platform": "^8.2.0"
+  }
+}
