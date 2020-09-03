@@ -1,5 +1,7 @@
 # unsplash-re
 
+Please use the official [JS client](https://github.com/unsplash/unsplash-js) instead.
+
 ## Installation
 
 ```sh
