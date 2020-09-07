@@ -1,16 +1,55 @@
 open Bs_node_fetch;
 
+module ApiResponse = {
+  type t('a) =
+    | Success('a)
+    | Error(array(string));
+};
+
 module Api = {
-  let apiKey = Js.Dict.get(Node.Process.process##env, "UNSPLASH_API_KEY");
-  let url = "https://api.unsplash.com";
+  // TODO: Fix unsafe
+  let apiKey =
+    Js.Dict.unsafeGet(Node.Process.process##env, "UNSPLASH_API_KEY");
+
+  let baseUrl = "https://api.unsplash.com";
   let version = "v1";
 
-  let request = (url: string, init: RequestInit.t) => {
-    fetchWithInit(url, init);
+  let request = (~url, ~method, ~decoder) => {
+    Js.Promise.(
+      fetchWithInit(
+        baseUrl ++ url,
+        RequestInit.make(
+          ~method_=method,
+          ~headers=
+            HeadersInit.make({
+              "Content-Type": "application/json",
+              "Authorization": "Client-ID " ++ apiKey,
+            }),
+          (),
+        ),
+      )
+      // TODO: Make this more safe
+      |> then_(Response.json)
+      |> then_(json => {
+           let response =
+             switch (decoder(json)) {
+             | Ok(v) => ApiResponse.Success(v)
+             | Error((e: Decco.decodeError)) =>
+               ApiResponse.Error([|
+                 e.path ++ " is " ++ e.message,
+               |])
+             };
+
+           resolve(response);
+         })
+      // TODO: Use error message instead?
+      |> catch(_ => ApiResponse.Error([|"Unknown error"|]) |> resolve)
+    );
   };
 };
 
 module User = {
+  [@decco.decode]
   type links = {
     self: string,
     html: string,
@@ -19,6 +58,7 @@ module User = {
     portfolio: string,
   };
 
+  [@decco.decode]
   type t = {
     id: string,
     updated_at: string,
@@ -34,11 +74,13 @@ module User = {
   };
 };
 module Location = {
+  [@decco.decode]
   type position = {
     latitude: float,
     longitude: float,
   };
 
+  [@decco.decode]
   type t = {
     city: string,
     country: string,
@@ -47,6 +89,7 @@ module Location = {
 };
 
 module Exif = {
+  [@decco.decode]
   type t = {
     make: string,
     model: string,
@@ -58,10 +101,12 @@ module Exif = {
 };
 
 module Tag = {
+  [@decco.decode]
   type t = {title: string};
 };
 
 module Photo = {
+  [@decco.decode]
   type urls = {
     raw: string,
     full: string,
@@ -70,6 +115,7 @@ module Photo = {
     thumb: string,
   };
 
+  [@decco.decode]
   type links = {
     self: string,
     html: string,
@@ -77,6 +123,7 @@ module Photo = {
     download_location: string,
   };
 
+  [@decco.decode]
   type t = {
     id: string,
     created_at: string,
@@ -87,7 +134,7 @@ module Photo = {
     downloads: int,
     likes: int,
     liked_by_user: bool,
-    description: string,
+    description: option(string),
     exif: Exif.t,
     location: Location.t,
     tags: list(Tag.t),
@@ -97,5 +144,10 @@ module Photo = {
   };
 
   let get = id =>
-    RequestInit.make(~method_=Get, ()) |> Api.request("/photos/" ++ id);
+    Api.request(~url="/photos/" ++ id, ~method=Get, ~decoder=t_decode);
 };
+
+Photo.get("T41xA8AB81M") |> Js.Promise.then_(v => {
+  Js.log(v);
+  Js.Promise.resolve()
+});

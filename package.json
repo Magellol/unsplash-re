@@ -13,5 +13,8 @@
     "bs-node-fetch": "^0.3.0",
     "bs-platform": "^8.2.0",
     "node-fetch": "^2.6.0"
+  },
+  "dependencies": {
+    "decco": "^1.3.0"
   }
 }

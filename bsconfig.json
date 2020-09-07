@@ -11,8 +11,10 @@
   },
   "suffix": ".bs.js",
   "bs-dependencies": [
-    "bs-node-fetch"
+    "bs-node-fetch",
+    "decco"
   ],
+  "ppx-flags": [ "decco/ppx" ],
   "warnings": {
     "error": "+101"
   }
