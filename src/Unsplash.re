@@ -82,9 +82,9 @@ module User = {
     updated_at: string,
     username: string,
     name: string,
-    portfolio_url: string,
+    portfolio_url: option(string),
     bio: string,
-    location: string,
+    location: option(string),
     total_likes: int,
     total_photos: int,
     total_collections: int,
@@ -94,14 +94,14 @@ module User = {
 module Location = {
   [@decco.decode]
   type position = {
-    latitude: float,
-    longitude: float,
+    latitude: option(float),
+    longitude: option(float),
   };
 
   [@decco.decode]
   type t = {
-    city: string,
-    country: string,
+    city: option(string),
+    country: option(string),
     position,
   };
 };
