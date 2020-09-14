@@ -4,6 +4,11 @@ module ApiResponse = {
   type t('a) =
     | Success('a)
     | Error(array(string));
+
+  [@decco.decode]
+  type errorResponse = {errors: array(string)};
+
+  [@bs.scope "JSON"] [@bs.val] external parse: string => Js.Json.t = "parse";
 };
 
 module Api = {
@@ -13,6 +18,32 @@ module Api = {
 
   let baseUrl = "https://api.unsplash.com";
   let version = "v1";
+
+  let handleResponse = (decoder, response) => {
+    Js.Promise.(
+      Response.text(response)
+      |> then_(v => ApiResponse.parse(v) |> resolve)
+      |> then_(value => {
+           let json =
+             Response.ok(response)
+               ? switch (decoder(value)) {
+                 | Ok(v) => ApiResponse.Success(v)
+                 | Error((e: Decco.decodeError)) =>
+                   ApiResponse.Error([|e.path ++ " is " ++ e.message|])
+                 }
+               : (
+                 // Making sure the error response from the API is what we think it is
+                 switch (ApiResponse.errorResponse_decode(value)) {
+                 | Ok(v) => ApiResponse.Error(v.errors)
+                 | Error(_error) => ApiResponse.Error([|"Unexpected error"|])
+                 }
+               );
+
+           resolve(json);
+         })
+      |> catch(_ => ApiResponse.Error([|"Unexpected response"|]) |> resolve)
+    );
+  };
 
   let request = (~url, ~method, ~decoder) => {
     Js.Promise.(
@@ -28,20 +59,7 @@ module Api = {
           (),
         ),
       )
-      // TODO: Make this more safe
-      |> then_(Response.json)
-      |> then_(json => {
-           let response =
-             switch (decoder(json)) {
-             | Ok(v) => ApiResponse.Success(v)
-             | Error((e: Decco.decodeError)) =>
-               ApiResponse.Error([|
-                 e.path ++ " is " ++ e.message,
-               |])
-             };
-
-           resolve(response);
-         })
+      |> then_(handleResponse(decoder))
       // TODO: Use error message instead?
       |> catch(_ => ApiResponse.Error([|"Unknown error"|]) |> resolve)
     );
@@ -147,7 +165,8 @@ module Photo = {
     Api.request(~url="/photos/" ++ id, ~method=Get, ~decoder=t_decode);
 };
 
-Photo.get("T41xA8AB81M") |> Js.Promise.then_(v => {
-  Js.log(v);
-  Js.Promise.resolve()
-});
+Photo.get("T41xA8AB81M")
+|> Js.Promise.then_(v => {
+     Js.log(v);
+     Js.Promise.resolve();
+   });
